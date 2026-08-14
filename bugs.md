@@ -1,6 +1,6 @@
-# Bugs found during UI tour
+# Bugs found so far
 
-Tour taken with a Playwright script (home → search → category → product → add to cart → cart → admin login → admin dashboard) against a fresh install. "Bug" here means anything that might bug a user, not just crashes.
+Touring (home → search → category → product → add to cart → cart → admin login → admin dashboard) against a fresh install. "Bug" here means anything that might bug a user.
 
 ## Placeholder / default content
 
