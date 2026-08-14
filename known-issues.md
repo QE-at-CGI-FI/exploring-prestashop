@@ -50,6 +50,42 @@ Sorted by comment count — this is where users keep coming back to argue, which
 
 **Pattern**: the things that generate the most sustained community pushback are not cosmetic — they cluster around **checkout/cart correctness and performance, order/pricing calculation accuracy, and installation friction**. That lines up with their own severity criteria (checkout and order management are explicitly called out as Critical/Major territory).
 
+## Closed `Bug` issues, last 12 months: how long, and what they actually fix
+
+Pulled every issue labeled `Bug` closed between 2025-08-14 and 2026-08-14 (**937 issues**, via GitHub search API, all fetched — under the API's 1000-result cap). Full title list, bucketed, is in `closed-bugs-last-year.md`.
+
+**Time to close is heavily distorted by a stale-issue bot** — 365 of the 937 (39%) carry the `Stale`/`Stale Action Closed` labels, meaning a bot auto-closed them after a long inactivity period rather than a maintainer resolving or rejecting them. Splitting the two groups changes the picture a lot:
+
+| Group | n | mean days open | median days open |
+|---|---|---|---|
+| All closed Bug issues | 937 | 1022 (2.8y) | 864 (2.4y) |
+| Stale-bot closed | 365 (39%) | 1677 (4.6y) | 1611 (4.4y) |
+| **Actively closed** (fixed/rejected/duplicate/etc. by a human) | 572 (61%) | 604 (1.65y) | **174 (5.7 months)** |
+
+The honest number for "how long does a bug that gets attention take to close" is the actively-closed median: **~5.7 months**. But even that group has a long tail — its p75 is 971 days (2.7 years), so a quarter of bugs that do eventually get a real resolution still take multiple years. The raw "1022 days average" headline number is mostly an artifact of old issues sitting dormant for years before a bot swept them, not a measure of how fast the team works.
+
+**What they actually fix** (classified the 572 actively-closed titles by keyword; full per-bucket lists in `closed-bugs-last-year.md`):
+
+| Category | Count | Example |
+|---|---|---|
+| Calculation / pricing / tax | 47 | "Problem with manual special price setting with comma becoming dot" |
+| Display / UI / rendering | 36 | "Color preview is still displayed after changing an attribute group" |
+| Install / upgrade / migration process | 34 | "PrestaShop 9 Fails Installation at 23%" |
+| Crash / fatal error | 33 | "Fatal error in hookActionCartSave when switching language" |
+| Module-specific | 27 | "500 Internal Server Error when configuring ps_emailsubscription" |
+| Carriers / shipping / addresses | 24 | "Carrier::getDeliveredCountries() uses wrong states ID" |
+| Stock / quantity logic | 23 | "Product quantity input of products with min quantity is faulty" |
+| Multistore | 22 | "[BO][Multishop] Design > Theme & Logo: updating logo in All shops" |
+| Import / export / webservice / API | 21 | "OOB XXE in the import component" |
+| Permissions / auth / security | 17 | "It is possible to validate an average admin password" |
+| Search / filter / sort / grid listing | 15 | "States grid list not updated after toggling status" |
+| Translation / language / locale | 14 | "Full RTL 9.0.2" |
+| (everything else, ~38%) | 218 | too varied to bucket by keyword — mostly one-off logic/data bugs |
+
+Two things stand out against the "what they say they care about" narrative from earlier in this doc:
+- **Install/upgrade issues (34) and crashes (33) get fixed fast and often** — consistent with their own "Critical" severity examples (install/update failures, fatal errors) being explicitly called out as top priority.
+- **Multistore (22) and Import/webservice/API (21) show up a lot in both the actively-closed AND the stale-bot-closed piles** (22 and 25 respectively) — these areas generate a steady stream of bugs but roughly half of them apparently don't get resolved before going stale, suggesting multistore and the API surface are higher-churn, lower-priority-per-issue areas relative to their bug volume.
+
 ## Reproduction pass: 30 open `Regression` issues, tried against a fresh install
 
 Spun up `docker compose up -d` (prestashop/prestashop:latest → resolved to **PS 9.1.4**) and wrote Playwright tests for the subset of the 30 open `Regression` issues that don't need Multistore, the Webservice API, extra language packs, or SMTP-level inspection — see `tests/regression-bugs.spec.js`. Tests assert the *reported-buggy* behavior, so a pass means "still reproduces," a fail means "doesn't reproduce this way" (fixed, or the environment differs from the report).

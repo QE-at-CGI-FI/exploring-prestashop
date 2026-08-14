@@ -12,9 +12,11 @@ Duration: 90 minutes
 - Could confirm one bug, learned there are dependencies on top of the basic package or specific data needed
 - Two that should have been confirmable seem to be most likely fixed
 - Noted that the github project uses claude, analyzed that it's about 5 months in, using co-authored-by trailer notation, 40 custom skills and an ai-agnostic contect layer, read on #41154
+- Analyze closed bugs for 'care to fix' patterns and time to closing, median 5.7 months to close; stale bot 4.5 years 365 / 937 closed in last year.
 
 ## Ideas for later:
 
 - list the APIs, and create tests against those.
 - leave comments on the actual bug list of the things that were fixed
 - analyze what the project has for tests
+- test for pricing/tax calculation bugs since they have fixed 47 of those last year
