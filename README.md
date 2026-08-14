@@ -11,5 +11,3 @@ JAMK / Marko Rintamäki uses Prestashop, with intentionally broken versions as a
 - terminal: colima start
 
 - terminal: docker compose up -d
-
-t.

@@ -17,7 +17,7 @@ Touring (home → search → category → product → add to cart → cart → a
 
 ## Broken / rendering bugs
 
-8. Reassurance icons (security/carrier/parcel SVGs) fail to load — browser console shows `net::ERR_NAME_NOT_RESOLVED` for a malformed URL (`http://modules/blockreassurance/...`, missing the actual host).
+8. Reassurance icons (security/carrier/parcel SVGs) fail to load — browser console shows `net::ERR_NAME_NOT_RESOLVED` for a malformed URL (`http://modules/blockreassurance/...`, missing the actual host). ([#41961](https://github.com/PrestaShop/PrestaShop/issues/41961))
 9. Admin dashboard's right-hand news/marketplace panels are visually clipped/overflowing ("Pr Ne...", "Lear Grov your busi...") — text cut off outside its container.
 10. Dashboard "Sales" graph Y-axis shows duplicate/nonsensical tick labels (1, 1, 0, 0, 0, 0, -1, -1, -1) instead of a clean scale.
 11. Shopping Cart page breadcrumb shows only "Home" with no separator or current-page label, inconsistent with breadcrumbs on other pages.
@@ -37,3 +37,7 @@ Touring (home → search → category → product → add to cart → cart → a
 16. On first login, the dashboard immediately shows a "your store encounters an issue... Verify your store" warning with no explanation of what's actually wrong.
 17. Notification bell shows 7 unread items on a brand-new, never-used install.
 18. Admin dashboard emits `[Vue warn]` console warnings ("Vue received a Component that was made a reactive object...") — dev-grade noise leaking into the admin UI.
+
+## Backend errors
+
+19. BO > Team > Add new employee: submitting the form after changing the Profile field (which triggers an AJAX refresh of the dependent "Default page" dropdown) without waiting for that refresh throws an uncaught `TypeError` and a 500, instead of a normal "this field is required" validation message (`AbstractEmployeeHandler::assertHomepageIsAccessible(): Argument #1 ($tabId) must be of type int, null given`, logged in `var/logs/prod-*.log`). Found incidentally while scripting a regression test in `tests/regression-bugs.spec.js`; not filed upstream.
