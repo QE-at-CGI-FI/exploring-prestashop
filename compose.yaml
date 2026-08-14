@@ -1,0 +1,20 @@
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: prestashop
+      MYSQL_DATABASE: prestashop
+
+  prestashop:
+    image: prestashop/prestashop:latest
+    ports:
+      - "8080:80"
+    environment:
+      DB_SERVER: db
+      DB_NAME: prestashop
+      DB_PASSWD: prestashop
+      PS_INSTALL_AUTO: 1
+      PS_FOLDER_ADMIN: admin-dev
+      PS_DOMAIN: localhost:8080
+    depends_on:
+      - db
