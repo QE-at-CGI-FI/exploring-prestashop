@@ -20,3 +20,4 @@ Duration: 90 minutes
 - leave comments on the actual bug list of the things that were fixed
 - analyze what the project has for tests
 - test for pricing/tax calculation bugs since they have fixed 47 of those last year
+- unmerged PRs: 513 with a lot of fixes in - the project does not benefit from testing
