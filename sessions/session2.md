@@ -21,3 +21,4 @@ Duration: 90 minutes
 - analyze what the project has for tests
 - test for pricing/tax calculation bugs since they have fixed 47 of those last year
 - unmerged PRs: 513 with a lot of fixes in - the project does not benefit from testing
+- try this with bombadil https://github.com/antithesishq/bombadil and antithesis property skill https://github.com/antithesishq/antithesis-skills/tree/main/antithesis-research
