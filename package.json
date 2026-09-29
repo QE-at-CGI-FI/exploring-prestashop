@@ -5,6 +5,8 @@
     "pretest": "bash scripts/ensure-env.sh",
     "test": "bombadil browser test --time-limit=60s --headless --exit-on-violation --output-path bombadil-output --output-path-overwrite http://localhost:8080 bombadil/specification.ts",
     "test:bombadil": "bombadil browser test --output-path bombadil-output --output-path-overwrite http://localhost:8080 bombadil/specification.ts",
+    "pretest:playwright": "bash scripts/ensure-env.sh",
+    "test:playwright": "playwright test",
     "test:schemathesis": "bash schemathesis/run.sh"
   },
   "devDependencies": {

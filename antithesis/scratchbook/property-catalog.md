@@ -409,7 +409,11 @@ to a specific source-level mechanism rather than left as an observation.
 | **Antithesis Angle** | Not a race — a standing regression guard against reintroducing the same unit-mismatch bug class in a future refactor. |
 | **Why It Matters** | **The single strongest finding in this catalog** — a confirmed source-level unit-mismatch bug, not a config choice. `config/config.inc.php` builds `$cookie_lifetime` as an *absolute future Unix timestamp* (correct for `Cookie::__construct()`'s `$expire` param), then reuses that same value unconverted as `SessionHandler`'s `$lifetime` constructor argument — which PHP's `session_set_cookie_params()` treats as a *relative* seconds-from-now duration. The arithmetic (absolute timestamp treated as a duration, added to "now" again) lands almost exactly on the observed "18 July 2083" expiry from `bugs.md` #13. |
 
-**Priority:** High. **Reachability:** ✅ Checkable today.
+**Priority:** High. **Reachability:** ⛔ Not implementable via Bombadil — confirmed by both the
+Implementability evaluation lens and live testing that `extract()` has no access to HTTP response
+headers, and this exact cookie is `HttpOnly` (invisible to page JS regardless). **Implemented and
+live-verified in `tests/session-cookie-properties.spec.js`** (Playwright reads headers via CDP, not
+page JS) — currently **fails** on this install as predicted (PHPSESSID lifetime ~20,746 days).
 
 **Open Questions:**
 
@@ -430,7 +434,11 @@ Evidence: `properties/session-cookie-lifetime-bounded.md`
 | **Antithesis Angle** | Latency/CPU fault injection on the single `prestashop` container could widen/narrow the window between an explicit mid-render cookie write and a later `__destruct()`-triggered write, surfacing whether the two values ever diverge in more than encryption-IV noise. |
 | **Why It Matters** | Session/cart correctness relies on unspecified "last Set-Cookie wins" client behavior (RFC 6265) that PrestaShop never states as a requirement; a client that doesn't apply it keeps a stale session cookie silently. Reproduced live 3× on home/category/product pages; absent on pure redirects and admin 401s (page-render-dependent, not universal). |
 
-**Priority:** Medium. **Reachability:** ✅ Checkable today.
+**Priority:** Medium. **Reachability:** ⛔ Not implementable via Bombadil (same wall as
+`session-cookie-lifetime-bounded` above — Set-Cookie headers are invisible to page JS by browser
+design, not just an HttpOnly issue this time). **Implemented and live-verified in
+`tests/session-cookie-properties.spec.js`** — currently **fails** on this install as predicted
+(the `PrestaShop-<hash>` cookie is set twice with two different encrypted values in one response).
 
 **Open Questions:**
 
@@ -450,7 +458,8 @@ Evidence: `properties/duplicate-session-cookie-single-write.md`
 | **Antithesis Angle** | Not a race — a fast localizer: if `Secure` ever appears unexpectedly (e.g. a proxy-header-trust bug), this fails immediately instead of surfacing only as a downstream cart-desync symptom several actions later. |
 | **Why It Matters** | Confirms `bugs.md` #6's real-world impact (credentials/session travel in cleartext on this deployment) without overclaiming PrestaShop "should" force HTTPS by default — traced to `Configuration::get('PS_SSL_ENABLED')`, a deployment choice, not a code defect. Value is as a regression guard, not a bug report. |
 
-**Priority:** Low-medium (confirms a known deployment choice; guards against a future proxy/config regression). **Reachability:** ✅ Checkable today.
+**Priority:** Low-medium (confirms a known deployment choice; guards against a future proxy/config regression). **Reachability:** ⛔ Not implementable via Bombadil (Set-Cookie attributes, including `Secure`, aren't exposed to page JS at all). **Implemented and live-verified in
+`tests/session-cookie-properties.spec.js`** — currently **passes** on this install.
 
 **Open Questions:** None — fully confirmed live and by source.
 
@@ -504,14 +513,27 @@ Evidence: `properties/weak-admin-credentials-blocked-on-auth.md`
 | **Antithesis Angle** | A genuine ordering property (identity-change window between render and submit) well-suited to deliberate interleaving rather than hoping organic exploration finds the right order. |
 | **Why It Matters** | The naive framing (staleness from time passing) is **wrong for this codebase** — a real, source-grounded finding in its own right: `Tools::getToken()` hashes `(customer->id, customer->passwd, page)` with no session nonce or timestamp, so for anonymous browsing the token is *constant* — plain back/forward-then-submit does **not** produce staleness. The actual (and only) trigger is a genuine identity change (login/logout) during the back/forward window. Side finding, not asserted as a bug: `CartController::updateCart()` only checks `isTokenValid()` when the customer `isLogged()` — anonymous cart mutations aren't CSRF-checked at all by this controller. |
 
-**Priority:** Low (mechanism confirmed, but the trigger condition requires authentication — more strongly blocked than any other property in the catalog, since even the *setup* to reach the trigger needs login). **Reachability:** 🔒 Blocked on back-office/login auth — zero reachable trigger today.
+**Priority:** Low (mechanism confirmed, but the trigger condition requires authentication). **Reachability:** 🔧 Needs workload extension — **correction from the Implementability evaluation lens:** this is *not* part of the "5 properties blocked on back-office auth" cluster despite an earlier draft folding it in there. Its own evidence file traces the trigger to `Tools::getToken()` hashing `(customer->id, customer->passwd, page)` — a **storefront customer** login/logout identity change, unrelated to back-office employee auth. It only needs Bombadil extended to register/log in/log out as a customer, a smaller lift than authenticating into `/admin-dev/`. Resolving the back-office-auth open question does **not** unblock this property.
 
 **Open Questions:** None on the mechanism — fully traced to source. Reachability is the only blocker.
 
 Evidence: `properties/csrf-token-stability-across-identity-change.md`
 
+## Implementation Status
+
+See `antithesis/scratchbook/evaluation/synthesis.md` for the full evaluation pass (4 lenses) this
+catalog went through. **13 of 23** properties are implemented and live-verified: **10 in
+`bombadil/specification.ts`** (3 clean 45s runs with `--exit-on-violation`, after a monkey-patch-
+based regression the evaluation/implementation process itself caught and fixed — see the synthesis
+doc's "Implementation Notes"), and **3 in `tests/session-cookie-properties.spec.js`** (Playwright —
+these were found not implementable via Bombadil at all, since Set-Cookie headers are invisible to
+page JS by browser design). Of those 3, two currently **fail** (documenting the confirmed
+cookie-lifetime and duplicate-cookie defects) and one **passes**. The remaining 10 are blocked on
+workload-scope decisions or need additional engineering not yet built.
+
 ## Catalog-Wide Open Questions
 
-- **The single biggest lever on this catalog's actionability**: 5 of 23 properties (`employee-creation-no-crash-on-race`, `order-message-lost-on-premature-reload`, `cart-rule-zero-value-discount-saves-silently`, `weak-admin-credentials-blocked-on-auth`, `csrf-token-stability-across-identity-change`) are blocked on one decision — whether to extend Bombadil to authenticate into `/admin-dev/`. A 6th (`admin-surface-rejects-anonymous-access`) needs only a URL-frontier seed, not auth. Resolving this once, deliberately, is worth more than any single property refinement. `(needs human input)`
+- **The single biggest lever on this catalog's actionability**: 4 of 23 properties (`employee-creation-no-crash-on-race`, `order-message-lost-on-premature-reload`, `cart-rule-zero-value-discount-saves-silently`, `weak-admin-credentials-blocked-on-auth`) are blocked on one decision — whether to extend Bombadil to authenticate into `/admin-dev/`. (`csrf-token-stability-across-identity-change` was removed from this group after evaluation found its real trigger is a *storefront customer* login/logout, not back-office auth — see its entry above.) A 5th (`admin-surface-rejects-anonymous-access`) needs only a same-origin `fetch()` probe, not auth, but see the Bias below about a possible conflict with the existing `noHttpErrorCodes` default before building it. Resolving the back-office-auth question once, deliberately, is worth more than any single property refinement. `(needs human input)`
 - Two properties (`add-to-cart-double-click-no-duplicate-line`, `voucher-code-resubmit-not-double-applied`) have source-validation questions left open purely because of a shared `gh api` rate limit hit during discovery, not because the question is hard — worth a quick retry pass before triage rather than treating them as permanently uncertain. `(needs investigation)`
-- Coverage gaps acknowledged rather than filled this pass: multistore, webservice/import-export, and translation/locale bug categories (large in `closed-bugs-last-year.md` but structurally out of reach for a single-shop, no-webservice, single-language Bombadil deployment) — see `sut-analysis.md` Bug History section.
+- Coverage gaps acknowledged rather than filled this pass: multistore, webservice/import-export, and translation/locale bug categories (large in `closed-bugs-last-year.md`), carriers/shipping (24 bugs, no dedicated property), combinations/variants (8 bugs, no dedicated property despite a cited same-pattern instance), guest-cart-merge-on-login, and the two-carts-racing-on-stock MySQL scenario. See `evaluation/synthesis.md`'s Gaps section for the full list — none filled this pass; flagged for a follow-up targeted-discovery run rather than silently dropped.
+- Whether the multistore/translation exclusion above reflects a real architectural limit or just this deployment's single-shop/single-language demo seed data is itself unresolved — see `evaluation/synthesis.md` Bias #1. `(needs human input)`
