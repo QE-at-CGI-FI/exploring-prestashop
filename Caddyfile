@@ -1,0 +1,16 @@
+# TLS termination in front of PrestaShop, for the Admin API only.
+#
+# PrestaShop's Admin API (/admin-api/...) hard-requires HTTPS + TLS 1.2+ in production mode
+# (src/PrestaShopBundle/EventListener/API/SSLMiddlewareListener.php) — there is no config
+# toggle to relax this outside Symfony debug mode, which prestashop/prestashop:latest doesn't
+# run in. Caddy terminates TLS with a locally-generated cert and forwards to the app container
+# over plain HTTP inside the compose network.
+#
+# The storefront and back office keep using plain http://localhost:8080 (see compose.yaml) —
+# only the Admin API needs this.
+:443 {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+	# PrestaShop's shop_url.domain_ssl is set to localhost:8443 (see README) precisely so the
+	# real Host header here matches its canonical SSL domain — no header rewriting needed.
+	reverse_proxy prestashop:80
+}

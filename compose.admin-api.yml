@@ -1,0 +1,39 @@
+# Optional overlay: adds HTTPS access to PrestaShop's Admin API. Only needed for the
+# Schemathesis tests under schemathesis/ — everything else (storefront, back office,
+# Playwright, Bombadil) only needs the base `compose.yaml` and plain `docker compose up -d`.
+#
+#   docker compose -f compose.yaml -f compose.admin-api.yml up -d --build
+#
+# Why this exists: PrestaShop's Admin API hard-requires HTTPS + TLS 1.2+ outside Symfony debug
+# mode (src/PrestaShopBundle/EventListener/API/SSLMiddlewareListener.php), which
+# prestashop/prestashop:latest doesn't run in. admin-api-tls (Caddy) terminates TLS at
+# https://localhost:8443 and forwards to the app container over plain HTTP inside the compose
+# network, telling Apache the request was HTTPS via X-Forwarded-Proto (see
+# docker/trust-forwarded-proto.conf).
+#
+# One more piece can't live in compose: PrestaShop's shop_url.domain_ssl DB row must be set to
+# localhost:8443 (it's localhost:8080 after a fresh PS_INSTALL_AUTO install), or the Admin API
+# redirects every request to the shop root instead of serving it. After bringing the stack up:
+#
+#   docker compose exec -T db mysql -uroot -pprestashop -D prestashop \
+#     -e "UPDATE ps_shop_url SET domain_ssl='localhost:8443' WHERE id_shop_url=1;"
+#
+# Building `docker/prestashop.Dockerfile` needs docker/zscaler-root-ca.pem and Caddy needs
+# certs/localhost.pem + certs/localhost-key.pem — both gitignored, machine-specific, and not
+# needed at all off a network with TLS-inspecting proxies. See README.md.
+services:
+  prestashop:
+    image: exploring-prestashop-admin-api:latest
+    build:
+      context: .
+      dockerfile: docker/prestashop.Dockerfile
+
+  admin-api-tls:
+    image: caddy:2
+    ports:
+      - "8443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    depends_on:
+      - prestashop

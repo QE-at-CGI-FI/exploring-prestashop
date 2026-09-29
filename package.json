@@ -1,7 +1,14 @@
 {
   "name": "exploring-prestashop",
   "private": true,
+  "scripts": {
+    "pretest": "bash scripts/ensure-env.sh",
+    "test": "bombadil browser test --time-limit=60s --headless --exit-on-violation --output-path bombadil-output --output-path-overwrite http://localhost:8080 bombadil/specification.ts",
+    "test:bombadil": "bombadil browser test --output-path bombadil-output --output-path-overwrite http://localhost:8080 bombadil/specification.ts",
+    "test:schemathesis": "bash schemathesis/run.sh"
+  },
   "devDependencies": {
+    "@antithesishq/bombadil": "^0.7.7",
     "@playwright/test": "^1.59.1"
   }
 }

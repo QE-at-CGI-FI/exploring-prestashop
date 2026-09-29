@@ -1,1 +1,15 @@
 node_modules/
+bombadil-output/
+.playwright-cli/
+.claude/
+.venv/
+
+# Local-machine-specific: this machine's corporate TLS-inspecting proxy root CA and the
+# self-signed cert generated for the admin-api-tls proxy — neither is portable to another
+# machine/network. See docker/prestashop.Dockerfile and Caddyfile.
+docker/zscaler-root-ca.pem
+certs/
+
+# Admin API client credentials (see schemathesis/.env.example)
+schemathesis/.env
+.schemathesis/
